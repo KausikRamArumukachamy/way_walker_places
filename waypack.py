@@ -719,11 +719,19 @@ def build_base(pack_dir: Path, out_gz: Path) -> None:
         # Multi-country packs: tag rows with the first code; country
         # detection only needs to find a pack containing that code.
         rows = db.execute(
-            "SELECT name, name_en, kind, lat, lon FROM places WHERE kind IN (%s)"
+            "SELECT id, name, name_en, kind, lat, lon FROM places WHERE kind IN (%s)"
             % ",".join(str(k) for k in BASE_KINDS | {SUBURB, VILLAGE}))
-        for name, en, kind, lat, lon in rows:
+        for pid, name, en, kind, lat, lon in rows.fetchall():
+            # Airport codes ("syd", "fra") work without the country file.
+            codes = []
+            if kind == AIRPORT:
+                own = set(tokens(name)) | set(tokens(en or ""))
+                codes = [t for (t,) in db.execute(
+                    "SELECT tok FROM tokens WHERE id = ?", (pid,))
+                    if len(t) == 3 and t.isascii() and t.isalpha()
+                    and t not in own]
             items.append(Item(name, en, kind, lat / COORD_SCALE,
-                              lon / COORD_SCALE))
+                              lon / COORD_SCALE, codes))
             ccs.append(cc[0])
         db.close()
     # Neighbouring country files overlap at the borders.
