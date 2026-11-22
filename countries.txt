@@ -24,3 +24,15 @@ vietnam
 malaysia-singapore-brunei
 indonesia
 philippines
+
+# Added for 30: Europe
+germany
+france
+italy
+spain
+netherlands
+switzerland
+portugal
+ireland-and-northern-ireland
+austria
+belgium

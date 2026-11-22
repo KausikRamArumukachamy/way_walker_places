@@ -188,7 +188,8 @@ FILTER_KEYS = (
 )
 
 
-def _names(tags) -> tuple[str | None, str | None, list[str]]:
+def _names(tags, lang_keys: tuple[str, ...] = ()
+           ) -> tuple[str | None, str | None, list[str]]:
     name = tags.get("name")
     en = tags.get("name:en") or tags.get("int_name")
     if not name:
@@ -196,7 +197,7 @@ def _names(tags) -> tuple[str | None, str | None, list[str]]:
     if en == name:
         en = None
     alt = []
-    for k in ALT_NAME_KEYS:
+    for k in ALT_NAME_KEYS + lang_keys:
         v = tags.get(k)
         if v:
             alt.extend(x.strip() for x in v.split(";") if x.strip())
@@ -208,20 +209,62 @@ def _names(tags) -> tuple[str | None, str | None, list[str]]:
     return name, en, [a for a in dict.fromkeys(alt) if a != name and a != en]
 
 
-# Other names that are searched (not shown). Local-language names let people
-# type in their own script: கோயம்பேடு, कश्मीरी गेट.
+# Other names that are searched (not shown).
 ALT_NAME_KEYS = (
     "alt_name", "official_name", "short_name", "old_name",
     "loc_name", "nat_name", "reg_name",
     "railway:ref", "iata",
-    # Languages of India (name:<code>); other countries' place names are
-    # usually already in the local script in "name".
-    "name:hi", "name:bn", "name:te", "name:mr", "name:ta", "name:ur",
-    "name:gu", "name:kn", "name:ml", "name:or", "name:pa", "name:as",
-    "name:mai", "name:sat", "name:ks", "name:ne", "name:kok", "name:sd",
-    "name:doi", "name:mni", "name:brx", "name:sa", "name:lus", "name:kha",
-    "name:tcy",
 )
+
+_ZH = ("name:zh", "name:zh-Hans", "name:zh-Hant", "name:zh-Latn-pinyin",
+       "name:zh_pinyin", "name:zh-Latn")
+
+# The languages people in each country type place names in, plus Latin
+# spellings of non-Latin scripts (romaji, pinyin...). Read as extra search
+# names so people can search in their own language or in English letters:
+# கோயம்பேடு, 東京 / Tokyo, 서울 / Seoul.
+LANGS: dict[str, tuple[str, ...]] = {
+    "IN": tuple(f"name:{c}" for c in (
+        "hi bn te mr ta ur gu kn ml or pa as mai sat ks ne kok sd doi mni "
+        "brx sa lus kha tcy").split()),
+    "LK": ("name:si", "name:ta"),
+    "NP": ("name:ne", "name:ne-Latn"),
+    "BD": ("name:bn", "name:bn-Latn"),
+    "PK": ("name:ur", "name:pa"),
+    "NZ": ("name:mi",),
+    "CA": ("name:fr",),
+    "US": ("name:es",),
+    "GB": ("name:cy", "name:gd"),
+    "IE": ("name:ga",),
+    "QA": ("name:ar", "name:ar-Latn"), "AE": ("name:ar", "name:ar-Latn"),
+    "OM": ("name:ar", "name:ar-Latn"), "BH": ("name:ar", "name:ar-Latn"),
+    "KW": ("name:ar", "name:ar-Latn"), "SA": ("name:ar", "name:ar-Latn"),
+    "JP": ("name:ja", "name:ja-Latn", "name:ja_rm", "name:ja-Hira",
+           "name:ja_kana", "name:ja-Kana"),
+    "CN": _ZH,
+    "TW": _ZH,
+    "HK": _ZH + ("name:zh-yue", "name:yue"),
+    "KR": ("name:ko", "name:ko-Latn", "name:ko_rm", "name:ko-Hani"),
+    "MN": ("name:mn", "name:mn-Latn"),
+    "TH": ("name:th", "name:th-Latn"),
+    "VN": ("name:vi",),
+    "MY": ("name:ms", "name:zh", "name:ta"),
+    "SG": ("name:ms", "name:zh", "name:ta"),
+    "BN": ("name:ms",),
+    "ID": ("name:id",),
+    "PH": ("name:tl", "name:fil"),
+    "CH": ("name:de", "name:fr", "name:it", "name:rm"),
+    "BE": ("name:nl", "name:fr", "name:de"),
+    "ES": ("name:es", "name:ca", "name:eu", "name:gl"),
+    "FR": ("name:fr", "name:br", "name:oc"),
+    "IT": ("name:it", "name:de"),
+    "DE": ("name:de",), "AT": ("name:de",), "NL": ("name:nl", "name:fy"),
+    "PT": ("name:pt",),
+}
+
+
+def lang_keys(cc: list[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(k for c in cc for k in LANGS.get(c, ())))
 
 
 def _population(tags) -> int:
@@ -229,7 +272,8 @@ def _population(tags) -> int:
     return int(v) if v.isdigit() else 0
 
 
-def read_pbf(path: Path) -> list[Item]:
+def read_pbf(path: Path, cc: list[str] = ()) -> list[Item]:
+    langs = lang_keys(list(cc))
     items: list[Item] = []
     ways: list[tuple[str, str | None, int, list[str], list[int]]] = []
     need: set[int] = set()
@@ -245,7 +289,7 @@ def read_pbf(path: Path) -> list[Item]:
         kind = classify(o.tags)
         if kind is None:
             continue
-        name, en, alt = _names(o.tags)
+        name, en, alt = _names(o.tags, langs)
         if not name:
             continue
         if o.is_node():
@@ -456,7 +500,7 @@ def gzip_file(src: Path, dst: Path) -> None:
 def build_pack(pbf: Path, pack_id: str, cc: list[str], title: str,
                out_dir: Path, osm_date: str = "") -> Path:
     t0 = time.time()
-    items = dedupe(read_pbf(pbf))
+    items = dedupe(read_pbf(pbf, cc))
     items.sort(key=lambda i: (IMPORTANCE[i.kind], i.name))
     out_dir.mkdir(parents=True, exist_ok=True)
     db_path = out_dir / f"{pack_id}.db"
