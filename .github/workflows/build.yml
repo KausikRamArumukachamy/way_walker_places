@@ -11,9 +11,14 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Only these countries (e.g. india,goa). Empty = all."
+        description: "Only these countries (e.g. india,new-zealand). Empty = all."
         required: false
         default: ""
+      latest:
+        description: "Make this the version the app downloads (even if only some countries)"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -82,7 +87,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="places-$(date +%Y-%m-%d)-${{ github.run_number }}"
-          if [ -n "${{ inputs.only }}" ]; then
+          if [ -n "${{ inputs.only }}" ] && [ "${{ inputs.latest }}" != "true" ]; then
             # Partial test run: never replace the full release the app uses.
             gh release create "test-$tag" --prerelease \
               --title "Test: ${{ inputs.only }}" --notes "Test build" \
