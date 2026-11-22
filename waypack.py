@@ -691,7 +691,7 @@ def _write_pack(items: list[Item], pack_id: str, cc: list[str], title: str,
     db_path = out_dir / f"{pack_id}.db"
     write_db(db_path, items, {
         "id": pack_id, "cc": ",".join(cc), "title": title,
-        "osm_date": osm_date, "built": time.strftime("%Y-%m-%d"),
+        "osm_date": osm_date, "built": time.strftime("%Y-%m-%dT%H:%M"),
     })
     gz = out_dir / f"{pack_id}.db.gz"
     gzip_file(db_path, gz)
