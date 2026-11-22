@@ -263,8 +263,25 @@ LANGS: dict[str, tuple[str, ...]] = {
 }
 
 
+# Europe has open borders: people cross from one country to the next and
+# search in their own language ("Monaco di Baviera", "Múnich" for München).
+# European packs are searchable in all of these.
+EUROPE_LANGS = tuple(f"name:{c}" for c in (
+    "en de fr it es pt nl pl cs sk hu ro bg el sv da fi nb no et lv lt sl "
+    "hr sr bs mk sq ga mt is lb ca eu gl cy ru uk be tr "
+    # Visitors from further away: only well-known places have these.
+    "zh ja ko ar hi ta he fa").split())
+EUROPE = set(
+    "AD AL AT BA BE BG BY CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IS IT "
+    "LI LT LU LV MC MD ME MK MT NL NO PL PT RO RS SE SI SK SM UA VA XK"
+    .split())
+
+
 def lang_keys(cc: list[str]) -> tuple[str, ...]:
-    return tuple(dict.fromkeys(k for c in cc for k in LANGS.get(c, ())))
+    keys = [k for c in cc for k in LANGS.get(c, ())]
+    if any(c in EUROPE for c in cc):
+        keys += EUROPE_LANGS
+    return tuple(dict.fromkeys(keys))
 
 
 def _population(tags) -> int:
