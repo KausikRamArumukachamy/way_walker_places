@@ -1,0 +1,14 @@
+# Countries the build makes (Geofabrik ids, one per line).
+# Add more lines to expand; full list: https://download.geofabrik.de
+# Empty file = every country.
+
+india
+new-zealand
+australia
+us
+mexico
+canada
+united-kingdom
+sri-lanka
+nepal
+gcc-states

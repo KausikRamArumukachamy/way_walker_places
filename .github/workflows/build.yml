@@ -49,9 +49,15 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Build country files
-        run: >
-          python waypack.py countries --out packs --work /tmp/work
-          --shard ${{ matrix.shard }}/8 --only "${{ inputs.only }}"
+        run: |
+          only="${{ inputs.only }}"
+          # No countries given: build the ones listed in countries.txt.
+          if [ -z "$only" ] && [ -f countries.txt ]; then
+            only=$(grep -v '^#' countries.txt | tr -s ' \r\n' ',' | sed 's/^,//; s/,$//')
+          fi
+          echo "Countries: ${only:-all}"
+          python waypack.py countries --out packs --work /tmp/work \
+            --shard ${{ matrix.shard }}/8 --only "$only"
 
       - uses: actions/upload-artifact@v4
         with:
