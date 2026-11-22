@@ -1,0 +1,99 @@
+# Builds Waywaker's offline place files for every country from
+# OpenStreetMap (via Geofabrik) and publishes them as a GitHub Release.
+# Free on public repositories. Runs on the 3rd of each month, or by hand
+# from the Actions tab ("Run workflow").
+
+name: Build places
+
+on:
+  schedule:
+    - cron: "0 3 3 * *"
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Only these countries (e.g. india,goa). Empty = all."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  countries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 4 # be gentle with Geofabrik's free servers
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space (the USA download is ~11 GB)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Build country files
+        run: >
+          python waypack.py countries --out packs --work /tmp/work
+          --shard ${{ matrix.shard }}/8 --only "${{ inputs.only }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packs-${{ matrix.shard }}
+          path: packs/*.db.gz
+          retention-days: 2
+          if-no-files-found: ignore
+
+  publish:
+    needs: countries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packs-*
+          path: packs
+          merge-multiple: true
+
+      - name: World file and list of countries
+        run: python waypack.py finish packs
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="places-$(date +%Y-%m-%d)-${{ github.run_number }}"
+          if [ -n "${{ inputs.only }}" ]; then
+            # Partial test run: never replace the full release the app uses.
+            gh release create "test-$tag" --prerelease \
+              --title "Test: ${{ inputs.only }}" --notes "Test build" \
+              packs/manifest.json packs/*.db.gz
+            exit 0
+          fi
+          gh release create "$tag" --latest \
+            --title "Places $(date +%Y-%m-%d)" \
+            --notes "Offline place files for Waywaker. Data © OpenStreetMap contributors, available under the Open Database License (ODbL 1.0): https://www.openstreetmap.org/copyright" \
+            packs/manifest.json packs/*.db.gz
+          # Keep only the 2 newest releases.
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | grep '^places-' | tail -n +3 \
+            | xargs -r -I{} gh release delete {} --yes --cleanup-tag

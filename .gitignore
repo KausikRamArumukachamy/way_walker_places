@@ -1,0 +1,4 @@
+__pycache__/
+packs/
+work/
+*.osm.pbf
