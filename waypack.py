@@ -834,10 +834,15 @@ def download(url: str, dst: Path) -> None:
     raise RuntimeError(f"could not download {url}")
 
 
+# Saved copy of Geofabrik's region list, for when its server refuses the
+# build machines (it changes rarely). Refresh: python waypack.py regions
+REGIONS_COPY = Path(__file__).parent / "regions.json"
+
+
 def _load_index() -> dict:
-    """Geofabrik's list of regions. Retried: a build machine's network can
-    be briefly unreachable when it starts."""
-    for attempt in range(6):
+    """Geofabrik's list of regions, or the saved copy if its server can't
+    be reached."""
+    for attempt in range(3):
         try:
             req = urllib.request.Request(
                 GEOFABRIK_INDEX,
@@ -847,7 +852,19 @@ def _load_index() -> dict:
         except Exception as e:  # noqa: BLE001
             print(f"  region list failed ({e}), retrying", flush=True)
             time.sleep(15 * (attempt + 1))
+    if REGIONS_COPY.exists():
+        print("  using the saved region list", flush=True)
+        return json.loads(REGIONS_COPY.read_text(encoding="utf-8"))
     raise RuntimeError("could not load the Geofabrik region list")
+
+
+def save_regions_copy() -> None:
+    index = _load_index()
+    slim = {"features": [{"properties": f["properties"]}
+                         for f in index["features"]]}
+    REGIONS_COPY.write_text(json.dumps(slim, ensure_ascii=False),
+                            encoding="utf-8")
+    print(f"[regions] {len(slim['features'])} saved", flush=True)
 
 
 def _fetch(url: str, dst: Path) -> None:
@@ -942,6 +959,7 @@ def main(argv: list[str]) -> None:
     e = sub.add_parser("finish")
     e.add_argument("packs", type=Path)
 
+    sub.add_parser("regions", help="save a copy of the region list")
     d = sub.add_parser("dart-fold", help="print the Dart accent table")
 
     args = ap.parse_args(argv)
@@ -955,6 +973,8 @@ def main(argv: list[str]) -> None:
         build_countries(args.out, args.work, only, (i, n))
     elif args.cmd == "finish":
         finish(args.packs)
+    elif args.cmd == "regions":
+        save_regions_copy()
     elif args.cmd == "dart-fold":
         body = ", ".join(
             f"0x{ord(k):04X}: '{v}'" for k, v in sorted(FOLD.items()))
