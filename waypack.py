@@ -549,11 +549,94 @@ def gzip_file(src: Path, dst: Path) -> None:
         shutil.copyfileobj(f, g)
 
 
+# Geofabrik regions that hold several countries. Each country gets its own
+# file, so people find "Qatar" or "Singapore" in the list and download only
+# what they need: region -> {country code: (pack id, title)}.
+SPLIT: dict[str, dict[str, tuple[str, str]]] = {
+    # Geofabrik's "GCC States" also holds Saudi Arabia (not in its codes).
+    "gcc-states": {
+        "SA": ("saudi-arabia", "Saudi Arabia"),
+        "AE": ("united-arab-emirates", "United Arab Emirates"),
+        "QA": ("qatar", "Qatar"),
+        "OM": ("oman", "Oman"),
+        "BH": ("bahrain", "Bahrain"),
+        "KW": ("kuwait", "Kuwait"),
+    },
+    "malaysia-singapore-brunei": {
+        "MY": ("malaysia", "Malaysia"),
+        "SG": ("singapore", "Singapore"),
+        "BN": ("brunei", "Brunei"),
+    },
+    "israel-and-palestine": {
+        "IL": ("israel", "Israel"),
+        "PS": ("palestine", "Palestine"),
+    },
+}
+
+# Country borders for SPLIT (and their neighbours, so places of a country
+# that isn't offered are left out). From Natural Earth (public domain),
+# simplified to ~200 m.
+BORDERS = Path(__file__).parent / "borders.geojson"
+
+
+def country_of(items: list[Item], coast_km: float = 25) -> list[str | None]:
+    """Country code of each place, from BORDERS. Places just off the coast
+    (ports, ferry piers, small islands) go to the nearest country."""
+    import shapely
+    from shapely.geometry import shape
+
+    feats = json.loads(BORDERS.read_text(encoding="utf-8"))["features"]
+    geoms = [shape(f["geometry"]) for f in feats]
+    codes = [f["properties"]["cc"] for f in feats]
+    x = np.array([i.lon for i in items])
+    y = np.array([i.lat for i in items])
+    out: list[str | None] = [None] * len(items)
+    left = np.ones(len(items), dtype=bool)
+    for g, c in zip(geoms, codes):
+        shapely.prepare(g)
+        inside = left & shapely.contains_xy(g, x, y)
+        for k in np.nonzero(inside)[0]:
+            out[k] = c
+        left &= ~inside
+    rest = np.nonzero(left)[0]
+    if len(rest):
+        pts = shapely.points(x[rest], y[rest])
+        dist = np.stack([shapely.distance(g, pts) for g in geoms])  # degrees
+        best, km = dist.argmin(axis=0), dist.min(axis=0) * 111
+        for k, b, d in zip(rest, best, km):
+            if d <= coast_km:
+                out[k] = codes[b]
+    return out
+
+
+def pack_ids(region_id: str) -> list[str]:
+    """The pack file(s) a Geofabrik region becomes."""
+    if region_id in SPLIT:
+        return [pid for pid, _ in SPLIT[region_id].values()]
+    return [region_id]
+
+
 def build_pack(pbf: Path, pack_id: str, cc: list[str], title: str,
-               out_dir: Path, osm_date: str = "") -> Path:
+               out_dir: Path, osm_date: str = "") -> None:
     t0 = time.time()
+    if pack_id in SPLIT:  # read every country's languages
+        cc = list(dict.fromkeys([*cc, *SPLIT[pack_id]]))
     items = dedupe(read_pbf(pbf, cc))
     items.sort(key=lambda i: (IMPORTANCE[i.kind], i.name))
+    if pack_id not in SPLIT:
+        _write_pack(items, pack_id, cc, title, out_dir, osm_date, t0)
+        return
+    owner = country_of(items)
+    for code, (pid, name) in SPLIT[pack_id].items():
+        mine = [i for i, o in zip(items, owner) if o == code]
+        _write_pack(mine, pid, [code], name, out_dir, osm_date, t0)
+    left_out = sum(1 for o in owner if o not in SPLIT[pack_id])
+    print(f"[split] {pack_id}: {left_out} places in other countries left out",
+          flush=True)
+
+
+def _write_pack(items: list[Item], pack_id: str, cc: list[str], title: str,
+                out_dir: Path, osm_date: str, t0: float) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     db_path = out_dir / f"{pack_id}.db"
     write_db(db_path, items, {
@@ -569,7 +652,6 @@ def build_pack(pbf: Path, pack_id: str, cc: list[str], title: str,
           f"{ {k: counts[k] for k in sorted(counts)} } "
           f"db={db_path.stat().st_size >> 10} KB gz={gz.stat().st_size >> 10} KB "
           f"in {time.time() - t0:.0f}s", flush=True)
-    return db_path
 
 
 # ----------------------------------------------------------------------------
@@ -740,7 +822,7 @@ def build_countries(out_dir: Path, work: Path, only: set[str] | None,
     for k, reg in enumerate(regions, 1):
         rid = reg["id"].replace("/", "-")
         print(f"[{k}/{len(regions)}] {rid}", flush=True)
-        if (out_dir / f"{rid}.db.gz").exists():
+        if all((out_dir / f"{p}.db.gz").exists() for p in pack_ids(rid)):
             continue
         pbf = work / f"{rid}.osm.pbf"
         download(reg["urls"]["pbf"], pbf)
