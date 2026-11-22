@@ -12,3 +12,15 @@ united-kingdom
 sri-lanka
 nepal
 gcc-states
+
+# Added for 20: East and South-East Asia
+japan
+china
+south-korea
+taiwan
+mongolia
+thailand
+vietnam
+malaysia-singapore-brunei
+indonesia
+philippines
