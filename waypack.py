@@ -293,6 +293,27 @@ LANGS: dict[str, tuple[str, ...]] = {
     "RU": ("name:ru", "name:ru-Latn", "name:tt", "name:ba"),
     "UA": ("name:uk", "name:uk-Latn"),
     "GR": ("name:el", "name:el-Latn"),
+    # Third 30.
+    "ET": ("name:am", "name:om", "name:ti", "name:am-Latn"),
+    "CD": ("name:fr", "name:ln", "name:sw"),
+    "TZ": ("name:sw",), "UG": ("name:sw", "name:lg"),
+    "DZ": ("name:ar", "name:fr", "name:kab", "name:ber", "name:ar-Latn"),
+    "TN": ("name:ar", "name:fr", "name:ar-Latn"),
+    "MU": ("name:fr", "name:mfe"),
+    "UZ": ("name:uz", "name:uz-Cyrl", "name:ru"),
+    "IQ": ("name:ar", "name:ku", "name:ckb", "name:ar-Latn"),
+    "JO": ("name:ar", "name:ar-Latn"),
+    "MV": ("name:dv", "name:dv-Latn"),
+    "BT": ("name:dz", "name:dz-Latn"),
+    "GE": ("name:ka", "name:ka-Latn", "name:ru"),
+    "AZ": ("name:az", "name:ru"),
+    "RS": ("name:sr", "name:sr-Latn"),
+    "BG": ("name:bg", "name:bg-Latn"),
+    "CY": ("name:el", "name:tr", "name:el-Latn"),
+    "CU": ("name:es",), "DO": ("name:es",), "HT": ("name:fr", "name:ht"),
+    "CR": ("name:es",), "EC": ("name:es", "name:qu"), "VE": ("name:es",),
+    "UY": ("name:es",),
+    "FJ": ("name:fj", "name:hif", "name:hi"),
 }
 
 
@@ -570,6 +591,14 @@ SPLIT: dict[str, dict[str, tuple[str, str]]] = {
     "israel-and-palestine": {
         "IL": ("israel", "Israel"),
         "PS": ("palestine", "Palestine"),
+    },
+    "haiti-and-domrep": {
+        "DO": ("dominican-republic", "Dominican Republic"),
+        "HT": ("haiti", "Haiti"),
+    },
+    "senegal-and-gambia": {
+        "SN": ("senegal", "Senegal"),
+        "GM": ("gambia", "Gambia"),
     },
 }
 
