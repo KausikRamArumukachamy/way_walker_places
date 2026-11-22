@@ -642,14 +642,16 @@ def _dated_urls(url: str, days: int = 7) -> list[str]:
 
 
 def download(url: str, dst: Path) -> None:
-    for attempt in range(5):
+    # Geofabrik is a free service and sometimes busy (503, stalls): keep
+    # trying for about 40 minutes before giving up.
+    for attempt in range(8):
         try:
             _fetch(url, dst)
             return
         except urllib.error.HTTPError as e:
             if e.code != 404:
                 print(f"  download failed ({e}), retrying", flush=True)
-                time.sleep(10 * (attempt + 1))
+                time.sleep(60 * (attempt + 1))
                 continue
             for older in _dated_urls(url):
                 try:
@@ -661,7 +663,7 @@ def download(url: str, dst: Path) -> None:
             break
         except Exception as e:  # noqa: BLE001
             print(f"  download failed ({e}), retrying", flush=True)
-            time.sleep(10 * (attempt + 1))
+            time.sleep(60 * (attempt + 1))
     raise RuntimeError(f"could not download {url}")
 
 
