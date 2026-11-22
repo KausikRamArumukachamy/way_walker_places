@@ -44,6 +44,19 @@ import numpy as np
 import osmium
 from scipy.spatial import cKDTree
 
+import socket
+
+# Build machines sometimes have a broken IPv6 route ("Network is
+# unreachable"), so connect over IPv4 only.
+_getaddrinfo = socket.getaddrinfo
+
+
+def _ipv4_only(host, port, family=0, *args, **kwargs):
+    return _getaddrinfo(host, port, socket.AF_INET, *args, **kwargs)
+
+
+socket.getaddrinfo = _ipv4_only
+
 SCHEMA_VERSION = 1
 COORD_SCALE = 100_000  # lat/lon stored as integers, ~1 m precision
 
