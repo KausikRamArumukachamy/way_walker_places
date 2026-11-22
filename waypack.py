@@ -81,7 +81,9 @@ CITY_KINDS = {CITY, TOWN}
 # Same name closer than this (metres) is treated as one place.
 DEDUPE_M = {
     RAIL: 600, METRO: 400, TRAM: 150, BUS_STATION: 300, BUS_STOP: 200,
-    AIRPORT: 3000, FERRY: 300, CITY: 5000, TOWN: 3000, VILLAGE: 1000,
+    # Cities/towns: the same city is often mapped twice, its centre and
+    # another point (Nairobi's are 12 km apart).
+    AIRPORT: 3000, FERRY: 300, CITY: 20000, TOWN: 8000, VILLAGE: 1000,
     SUBURB: 1000, NEIGHBOURHOOD: 500, HAMLET: 500,
 }
 
@@ -449,10 +451,14 @@ def dedupe(items: list[Item]) -> list[Item]:
         for j in tree.query_ball_point(pts[idx], r):
             if j > idx and keep[j] and norm[j] == norm[idx] and (
                     items[j].kind == it.kind
-                    or {items[j].kind, it.kind} <= {RAIL, METRO, TRAM}):
+                    or {items[j].kind, it.kind} <= {RAIL, METRO, TRAM}
+                    or {items[j].kind, it.kind} <= {CITY, TOWN}):
                 keep[j] = False
                 if not it.name_en and items[j].name_en:
                     it.name_en = items[j].name_en
+                # Keep the other copy's other-language names and codes.
+                it.alt.extend(a for a in items[j].alt if a not in it.alt)
+                it.pop = max(it.pop, items[j].pop)
     return [it for it, k in zip(items, keep) if k]
 
 
@@ -483,6 +489,17 @@ def write_db(path: Path, items: list[Item], meta: dict[str, str],
     near_i, _ = _nearest(pts, pts[loc_idx], 5000)
     c_i, c_d = _nearest(pts, pts[city_idx], 30000)
     t_i, t_d = _nearest(pts, pts[town_idx], 15000)
+    # Towns: the nearest city within 50 km, so the many towns of the same
+    # name tell apart ("Dublin · Town · Hayward" / "... · Macon").
+    tc_i, _ = _nearest(pts, pts[city_idx], 50000)
+    # ...or, far from cities, the nearest other town within 30 km.
+    tt_i = np.full(n, -1)
+    if len(town_idx) > 1:
+        d2, i2 = cKDTree(pts[town_idx]).query(
+            pts[town_idx], k=2, distance_upper_bound=30000 / EARTH_M)
+        for row, k in enumerate(town_idx):
+            if np.isfinite(d2[row, 1]):
+                tt_i[k] = town_idx[i2[row, 1]]
     # Among cities within 30 km, name the biggest one: an area between
     # Chennai and Tambaram is "Chennai".
     if len(city_idx):
@@ -506,7 +523,11 @@ def write_db(path: Path, items: list[Item], meta: dict[str, str],
         if kind not in LOCALITY_KINDS and near_i[k] >= 0:
             near[k] = int(loc_idx[near_i[k]]) + 1
         if kind == TOWN:
-            continue  # a town is described well enough by its own name
+            if tc_i[k] >= 0:
+                city[k] = int(city_idx[tc_i[k]]) + 1
+            elif tt_i[k] >= 0:
+                city[k] = int(tt_i[k]) + 1
+            continue
         # Prefer the city ("Chennai"), unless a town is much closer (big
         # cities pull from four times as far away as towns).
         has_c = c_i[k] >= 0 and city_idx[c_i[k]] != k
