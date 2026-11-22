@@ -260,6 +260,26 @@ LANGS: dict[str, tuple[str, ...]] = {
     "IT": ("name:it", "name:de"),
     "DE": ("name:de",), "AT": ("name:de",), "NL": ("name:nl", "name:fy"),
     "PT": ("name:pt",),
+    # Next 30.
+    "TR": ("name:tr", "name:ku"),
+    "IL": ("name:he", "name:ar", "name:he-Latn"),
+    "PS": ("name:ar", "name:he", "name:ar-Latn"),
+    "IR": ("name:fa", "name:fa-Latn", "name:az", "name:ku"),
+    "KZ": ("name:kk", "name:ru", "name:kk-Latn"),
+    "KH": ("name:km", "name:km-Latn"),
+    "MM": ("name:my", "name:my-Latn"),
+    "LA": ("name:lo", "name:lo-Latn"),
+    "BR": ("name:pt",),
+    "AR": ("name:es",), "CO": ("name:es",), "CL": ("name:es",),
+    "PE": ("name:es", "name:qu"),
+    "EG": ("name:ar", "name:ar-Latn", "name:arz"),
+    "MA": ("name:ar", "name:fr", "name:zgh", "name:ber", "name:ar-Latn"),
+    "ZA": ("name:af", "name:zu", "name:xh", "name:st"),
+    "NG": ("name:yo", "name:ha", "name:ig"),
+    "KE": ("name:sw",),
+    "RU": ("name:ru", "name:ru-Latn", "name:tt", "name:ba"),
+    "UA": ("name:uk", "name:uk-Latn"),
+    "GR": ("name:el", "name:el-Latn"),
 }
 
 
@@ -274,6 +294,8 @@ EUROPE_LANGS = tuple(f"name:{c}" for c in (
 EUROPE = set(
     "AD AL AT BA BE BG BY CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IS IT "
     "LI LT LU LV MC MD ME MK MT NL NO PL PT RO RS SE SI SK SM UA VA XK"
+    # Partly in Europe, and Europeans travel there: "Moskau", "Estambul".
+    " RU TR"
     .split())
 
 
