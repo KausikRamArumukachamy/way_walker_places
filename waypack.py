@@ -316,6 +316,27 @@ LANGS: dict[str, tuple[str, ...]] = {
     "CR": ("name:es",), "EC": ("name:es", "name:qu"), "VE": ("name:es",),
     "UY": ("name:es",),
     "FJ": ("name:fj", "name:hif", "name:hi"),
+    # Fourth 30.
+    "MK": ("name:mk", "name:mk-Latn", "name:sq"),
+    "BA": ("name:bs", "name:hr", "name:sr", "name:sr-Latn"),
+    "ME": ("name:sr", "name:sr-Latn", "name:cnr"),
+    "LU": ("name:lb", "name:fr", "name:de"),
+    "MD": ("name:ro", "name:ru"),
+    "MT": ("name:mt",),
+    "BO": ("name:es", "name:qu", "name:ay"),
+    "PY": ("name:es", "name:gn"),
+    "GT": ("name:es",), "HN": ("name:es",), "SV": ("name:es",),
+    "NI": ("name:es",), "PA": ("name:es",),
+    "SN": ("name:fr", "name:wo"), "GM": ("name:wo",),
+    "CI": ("name:fr",), "CM": ("name:fr",),
+    "AO": ("name:pt",), "MZ": ("name:pt",),
+    "MG": ("name:mg", "name:fr"),
+    "ZW": ("name:sn", "name:nd"),
+    "AF": ("name:ps", "name:fa", "name:prs", "name:ps-Latn", "name:fa-Latn"),
+    "AM": ("name:hy", "name:hy-Latn", "name:ru"),
+    "LB": ("name:ar", "name:fr", "name:ar-Latn"),
+    "KG": ("name:ky", "name:ru", "name:ky-Latn"),
+    "PG": ("name:tpi",),
 }
 
 
