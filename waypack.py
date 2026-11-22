@@ -665,6 +665,22 @@ def download(url: str, dst: Path) -> None:
     raise RuntimeError(f"could not download {url}")
 
 
+def _load_index() -> dict:
+    """Geofabrik's list of regions. Retried: a build machine's network can
+    be briefly unreachable when it starts."""
+    for attempt in range(6):
+        try:
+            req = urllib.request.Request(
+                GEOFABRIK_INDEX,
+                headers={"User-Agent": "waywaker-places-builder"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)
+        except Exception as e:  # noqa: BLE001
+            print(f"  region list failed ({e}), retrying", flush=True)
+            time.sleep(15 * (attempt + 1))
+    raise RuntimeError("could not load the Geofabrik region list")
+
+
 def _fetch(url: str, dst: Path) -> None:
     req = urllib.request.Request(
         url, headers={"User-Agent": "waywaker-places-builder"})
@@ -678,8 +694,7 @@ def build_countries(out_dir: Path, work: Path, only: set[str] | None,
     country is built, so several machines can share the work."""
     out_dir.mkdir(parents=True, exist_ok=True)
     work.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(GEOFABRIK_INDEX) as r:
-        index = json.load(r)
+    index = _load_index()
     regions = sorted(country_regions(index), key=lambda r: r["id"])
     if only:
         regions = [r for r in regions if r["id"] in only]
