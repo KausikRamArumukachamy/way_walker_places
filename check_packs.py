@@ -179,7 +179,7 @@ CHECKS: dict[str, list[tuple[str, set[int] | None, str]]] = {
     "macedonia": [("skp", AIRPORT, ""), ("skopje", None, ""), ("скопје", None, "")],
     "montenegro": [("tgd", AIRPORT, ""), ("podgorica", None, ""), ("kotor", None, "")],
     "malta": [("mla", AIRPORT, ""), ("valletta", None, "")],
-    "moldova": [("kiv", AIRPORT, ""), ("chisinau", None, "")],
+    "moldova": [("rmo", AIRPORT, ""), ("chisinau", None, "")],
     "bolivia": [("vvi", AIRPORT, ""), ("la paz", None, ""), ("santa cruz de la sierra", None, "")],
     "paraguay": [("asu", AIRPORT, ""), ("asuncion", None, "")],
     "guatemala": [("gua", AIRPORT, ""), ("guatemala", None, ""), ("antigua guatemala", None, "")],
@@ -201,7 +201,7 @@ CHECKS: dict[str, list[tuple[str, set[int] | None, str]]] = {
     "afghanistan": [("kbl", AIRPORT, ""), ("kabul", None, ""), ("کابل", None, "")],
     "armenia": [("evn", AIRPORT, ""), ("yerevan", None, ""), ("երևան", None, "")],
     "lebanon": [("bey", AIRPORT, ""), ("beirut", None, ""), ("بيروت", None, "")],
-    "kyrgyzstan": [("fru", AIRPORT, ""), ("bishkek", None, ""), ("бишкек", None, "")],
+    "kyrgyzstan": [("bsz", AIRPORT, ""), ("bishkek", None, ""), ("бишкек", None, "")],
     "papua-new-guinea": [("pom", AIRPORT, ""), ("port moresby", None, "")],
 }
 
